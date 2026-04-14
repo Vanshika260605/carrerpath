@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Life Decision Simulator</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #080c14;
+      --bg2: #0d1320;
+      --bg3: #111827;
+      --card: #131c2e;
+      --card2: #192338;
+      --border: rgba(56, 189, 248, 0.12);
+      --border2: rgba(56, 189, 248, 0.25);
+      --cyan: #38bdf8;
+      --cyan2: #0ea5e9;
+      --gold: #f59e0b;
+      --gold2: #fbbf24;
+      --green: #10b981;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --muted2: #94a3b8;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Sora', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* BACKGROUND GRID */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(56, 189, 248, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* GLOWING ORB */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -20%;
+      right: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ===== NAV ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 40px;
+      background: rgba(8, 12, 20, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-logo span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.4;
+        transform: scale(0.8);
+      }
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--muted2);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+    }
+
+    /* ===== PAGES ===== */
+    .page {
+      position: relative;
+      z-index: 1;
+    }
+
+    .page:not(.active) {
+      display: none !important;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    /* ===== INPUT PAGE ===== */
+    #page-input {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 24px 60px;
+    }
+
+    .input-container {
+      width: 100%;
+      max-width: 680px;
+    }
+
+    .input-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+
+    .tag-line {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 3px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .tag-line::before,
+    .tag-line::after {
+      content: '';
+      flex: 1;
+      max-width: 60px;
+      height: 1px;
+      background: var(--border2);
+    }
+
+    .input-header h1 {
+      font-family: var(--mono);
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #e2e8f0 0%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 16px;
+    }
+
+    .input-header p {
+      color: var(--muted2);
+      font-size: 15px;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+
+    .form-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .form-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--cyan2), transparent);
+    }
+
+    .form-group {
+      margin-bottom: 28px;
+    }
+
+    .form-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .form-label .num {
+      width: 20px;
+      height: 20px;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid var(--border2);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    .form-input {
+      width: 100%;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      transition: all 0.25s;
+    }
+
+    .form-input:focus {
+      border-color: var(--cyan2);
+      background: rgba(14, 165, 233, 0.05);
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.08);
+    }
+
+    .form-input::placeholder {
+      color: var(--muted);
+    }
+
+    select.form-input {
+      cursor: pointer;
+      appearance: none;
+    }
+
+    select.form-input option {
+      background: var(--bg3);
+    }
+
+    .select-wrapper {
+      position: relative;
+    }
+
+    .select-wrapper::after {
+      content: '▾';
+      position: absolute;
+      right: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+      font-size: 12px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* SLIDER */
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .slider-value {
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--cyan);
+      font-weight: 700;
+    }
+
+    .slider-sub {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 4px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--cyan);
+      border: 3px solid var(--bg);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.7);
+    }
+
+    .simulate-btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--cyan2), #0284c7);
+      border: none;
+      border-radius: 12px;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 2px;
+      color: white;
+      cursor: pointer;
+      text-transform: uppercase;
+      margin-top: 12px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s;
+    }
+
+    .simulate-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .simulate-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(14, 165, 233, 0.4);
+    }
+
+    .simulate-btn:hover::before {
+      opacity: 1;
+    }
+
+    .simulate-btn:active {
+      transform: translateY(0);
+    }
+
+    /* ===== LOADING ===== */
+    #page-loading {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+    }
+
+    .loader-ring {
+      width: 80px;
+      height: 80px;
+      border: 3px solid var(--border);
+      border-top-color: var(--cyan);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loader-text {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 3px;
+      color: var(--muted2);
+      text-transform: uppercase;
+      animation: blink 1.5s ease-in-out infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    .loader-progress {
+      width: 200px;
+      height: 2px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loader-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan2), var(--gold));
+      border-radius: 2px;
+      animation: load 2s ease forwards;
+    }
+
+    @keyframes load {
+      from {
+        width: 0
+      }
+
+      to {
+        width: 100%
+      }
+    }
+
+    /* ===== DASHBOARD ===== */
+    #page-dashboard {
+      padding: 90px 0 60px;
+    }
+
+    .dash-header {
+      padding: 40px 48px 32px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .dash-title {
+      font-family: var(--mono);
+      font-size: clamp(20px, 3vw, 32px);
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--text), var(--cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .dash-subtitle {
+      color: var(--muted2);
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .dash-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan2), #0284c7);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      padding: 9px 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), #d97706);
+      border: none;
+      border-radius: 8px;
+      color: #1c0f00;
+      padding: 9px 18px;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      font-weight: 700;
+      text-transform: uppercase;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.3);
+    }
+
+    /* SECTION TABS */
+    .section-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 48px;
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .section-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 16px 20px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .tab:hover {
+      color: var(--muted2);
+    }
+
+    .tab.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+    }
+
+    .dash-content {
+      padding: 40px 48px;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.3), transparent);
+    }
+
+    .card-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title .icon {
+      width: 28px;
+      height: 28px;
+      background: rgba(56, 189, 248, 0.1);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    /* SUMMARY */
+    .summary-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .summary-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .summary-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* SCENARIOS */
+    .scenario-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s;
+    }
+
+    .scenario-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .scenario-card.best {
+      border-top: 2px solid var(--green);
+    }
+
+    .scenario-card.avg {
+      border-top: 2px solid var(--yellow);
+    }
+
+    .scenario-card.worst {
+      border-top: 2px solid var(--red);
+    }
+
+    .scenario-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+
+    .best .scenario-badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .avg .scenario-badge {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--yellow);
+    }
+
+    .worst .scenario-badge {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .scenario-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .scenario-desc {
+      font-size: 13px;
+      color: var(--muted2);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .prob-label {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 11px;
+      margin-bottom: 8px;
+    }
+
+    .prob-bar {
+      height: 6px;
+      background: var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .prob-fill {
+      height: 100%;
+      border-radius: 6px;
+      transition: width 1s ease;
+    }
+
+    .best .prob-fill {
+      background: linear-gradient(90deg, var(--green), #34d399);
+    }
+
+    .avg .prob-fill {
+      background: linear-gradient(90deg, var(--yellow), #fbbf24);
+    }
+
+    .worst .prob-fill {
+      background: linear-gradient(90deg, var(--red), #f87171);
+    }
+
+    /* ALTERNATIVES */
+    .alt-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      transition: all 0.25s;
+      cursor: default;
+    }
+
+    .alt-card:hover {
+      border-color: var(--border2);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .alt-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+
+    .alt-desc {
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+
+    .alt-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .meta-chip {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      text-transform: uppercase;
+    }
+
+    .chip-risk-low {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .chip-risk-med {
+      background: rgba(245, 158, 11, 0.12);
+      color: var(--yellow);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .chip-risk-high {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--red);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .chip-speed {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--cyan);
+      border: 1px solid var(--border2);
+    }
+
+    /* ROADMAP */
+    .phase-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+    }
+
+    .phase-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .phase-num {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, var(--cyan2), #0284c7);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--mono);
+      font-size: 14px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .phase-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .phase-duration {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--cyan);
+    }
+
+    .phase-tasks {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phase-task {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--muted2);
+      cursor: pointer;
+      padding: 6px 0;
+      transition: color 0.15s;
+    }
+
+    .phase-task:hover {
+      color: var(--text);
+    }
+
+    .task-check {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid var(--border2);
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      font-size: 10px;
+    }
+
+    .phase-task.done .task-check {
+      background: var(--green);
+      border-color: var(--green);
+      color: white;
+    }
+
+    .phase-task.done {
+      color: var(--muted);
+      text-decoration: line-through;
+    }
+
+    .phase-footer {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .phase-stat {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .phase-stat strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    /* COMPARISON TABLE */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .compare-table th,
+    .compare-table td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .compare-table th {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .compare-table tr:hover td {
+      background: rgba(56, 189, 248, 0.03);
+    }
+
+    .compare-table td:first-child {
+      color: var(--muted2);
+    }
+
+    .cell-good {
+      color: var(--green);
+      font-weight: 500;
+    }
+
+    .cell-ok {
+      color: var(--yellow);
+      font-weight: 500;
+    }
+
+    .cell-bad {
+      color: var(--red);
+      font-weight: 500;
+    }
+
+    /* AI MENTOR */
+    .mentor-card {
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(245, 158, 11, 0.05));
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mentor-card::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      right: -60px;
+      width: 200px;
+      height: 200px;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.1), transparent 70%);
+      pointer-events: none;
+    }
+
+    .mentor-avatar {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(135deg, var(--cyan2), var(--gold));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 16px;
+    }
+
+    .mentor-name {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .mentor-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: var(--text);
+      font-weight: 300;
+    }
+
+    /* CHARTS */
+    .chart-wrapper {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    .chart-wrapper canvas {
+      max-height: 260px;
+    }
+
+    /* WHAT-IF */
+    .whatif-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 28px;
+    }
+
+    .whatif-output {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+
+    .wi-metric {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .wi-value {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--cyan);
+      margin-bottom: 4px;
+      transition: all 0.3s;
+    }
+
+    .wi-label {
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+
+
+    /* RISK */
+    .risk-indicator {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .risk-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .risk-name {
+      font-size: 13px;
+      color: var(--muted2);
+      min-width: 140px;
+    }
+
+    .risk-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .risk-fill {
+      height: 100%;
+      border-radius: 8px;
+      transition: width 1s ease;
+    }
+
+    .risk-fill.low {
+      background: linear-gradient(90deg, var(--green), #34d399);
+    }
+
+    .risk-fill.med {
+      background: linear-gradient(90deg, var(--yellow), #fbbf24);
+    }
+
+    .risk-fill.high {
+      background: linear-gradient(90deg, var(--red), #f87171);
+    }
+
+    .risk-badge {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .risk-badge.low {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--green);
+    }
+
+    .risk-badge.med {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--yellow);
+    }
+
+    .risk-badge.high {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    /* REMINDERS */
+    .reminder-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px;
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    .reminder-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .reminder-icon.daily {
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    .reminder-icon.weekly {
+      background: rgba(245, 158, 11, 0.1);
+    }
+
+    .reminder-title {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
+
+    .reminder-time {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--cyan);
+    }
+
+    .reminder-msg {
+      font-size: 12px;
+      color: var(--muted2);
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+
+    /* COMPLETION DATE */
+    .completion-banner {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(245, 158, 11, 0.06));
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .completion-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .completion-date {
+      font-family: var(--mono);
+      font-size: 22px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--cyan), var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .progress-overall {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .progress-ring-wrap {
+      position: relative;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      nav {
+        padding: 14px 20px;
+      }
+
+      .dash-header {
+        padding: 24px 20px;
+      }
+
+      .section-tabs {
+        padding: 0 20px;
+      }
+
+      .dash-content {
+        padding: 24px 20px;
+      }
+
+      .grid-2,
+      .grid-3,
+      .grid-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+
+      .whatif-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .whatif-output {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .form-card {
+        padding: 24px;
+      }
+
+      .input-container {
+        max-width: 100%;
+      }
+    }
+
+    /* SECTION: all shown in single page via tabs */
+    .section-header {
+      margin-bottom: 28px;
+    }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .section-desc {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      background: var(--card);
+      border: 1px solid var(--green);
+      border-radius: 10px;
+      padding: 14px 20px;
+      font-size: 13px;
+      color: var(--text);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .roadmap-line {
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .roadmap-line::before {
+      content: '';
+      position: absolute;
+      left: 18px;
+      top: 36px;
+      bottom: 0;
+      width: 1px;
+      background: linear-gradient(180deg, var(--cyan2), transparent);
+    }
+
+    .phase-wrapper {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    .phase-dot {
+      position: absolute;
+      left: -26px;
+      top: 16px;
+      width: 12px;
+      height: 12px;
+      background: var(--cyan);
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+      box-shadow: 0 0 8px var(--cyan2);
+    }
+
+    /* RESOURCES & VIDEOS */
+    .resource-card {
+      background: var(--card2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: transform 0.2s;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .resource-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--cyan);
+    }
+
+    .resource-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--cyan);
+    }
+
+    .resource-desc {
+      font-size: 12px;
+      color: var(--muted2);
+      line-height: 1.5;
+    }
+
+    .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 16px;
+      padding: 8px 14px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      color: #fca5a5;
+      font-size: 11px;
+      font-family: var(--mono);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .video-link:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+      color: white;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">
+      <span></span>
+      Life Decision Simulator
+    </div>
+    <div class="nav-actions" id="nav-actions">
+      <button class="btn-ghost" onclick="resetApp()">↺ Reset</button>
+    </div>
+  </nav>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast">✓ <span id="toast-msg">Progress saved!</span></div>
+
+  <!-- ===== PAGE: INPUT ===== -->
+  <div class="page active" id="page-input">
+    <div id="page-input-content">
+      <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:100px 24px 60px;">
+        <div class="input-container">
+          <div class="input-header">
+            <div class="tag-line">Decision Intelligence Engine</div>
+            <h1>Simulate Your<br>Life Decision</h1>
+            <p>Input your decision parameters and our AI engine will simulate outcomes,<br>generate roadmaps, and reveal
+              hidden paths.</p>
+          </div>
+          <div class="form-card">
+            <div class="form-group">
+              <label class="form-label"><span class="num">01</span> What decision are you considering?</label>
+              <input type="text" class="form-input" id="inp-decision"
+                placeholder="e.g. Switch to Web Development, Start a business, Move abroad..." />
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label"><span class="num">02</span> Risk Tolerance</label>
+                <div class="select-wrapper">
+                  <select class="form-input" id="inp-risk">
+                    <option value="low">Low Risk</option>
+                    <option value="medium" selected>Medium Risk</option>
+                    <option value="high">High Risk</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label"><span class="num">03</span> Current Skill Level</label>
+                <div class="select-wrapper">
+                  <select class="form-input" id="inp-skill">
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate" selected>Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><span class="num">04</span> Daily Time Commitment</label>
+              <div class="slider-group">
+                <div class="slider-header">
+                  <div>
+                    <div class="slider-value" id="time-val">4</div>
+                    <div class="slider-sub">hours per day</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">1 hr → 8 hrs</div>
+                  </div>
+                </div>
+                <input type="range" id="inp-time" min="1" max="8" value="4"
+                  oninput="document.getElementById('time-val').textContent=this.value" />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><span class="num">05</span> Available Budget <span
+                  style="color:var(--muted);font-size:9px;text-transform:none;letter-spacing:0">(optional)</span></label>
+              <input type="text" class="form-input" id="inp-budget" placeholder="e.g. $500/month, $5000 total, None" />
+            </div>
+
+            <button class="simulate-btn" onclick="startSimulation()">⚡ Simulate Decision</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: LOADING ===== -->
+  <div class="page" id="page-loading">
+    <div class="loader-ring"></div>
+    <div class="loader-text" id="loader-text">Analyzing decision matrix...</div>
+    <div class="loader-progress">
+      <div class="loader-bar" id="loader-bar"></div>
+    </div>
+  </div>
+
+  <!-- ===== PAGE: DASHBOARD ===== -->
+  <div class="page" id="page-dashboard">
+
+    <div class="dash-header">
+      <div>
+        <div class="dash-title" id="dash-title">Decision Analysis</div>
+        <div class="dash-subtitle" id="dash-subtitle">Complete simulation report generated</div>
+      </div>
+      <div class="dash-actions">
+        <button class="btn-ghost" onclick="downloadRoadmap()">↓ Download PDF</button>
+        <button class="btn-gold" onclick="saveProgress()">💾 Save Progress</button>
+        <button class="btn-ghost" onclick="resetApp()">↺ New Decision</button>
+      </div>
+    </div>
+
+    <div class="section-tabs" id="section-tabs">
+      <div class="tab active" onclick="showSection('summary',this)">Summary</div>
+      <div class="tab" onclick="showSection('scenarios',this)">Scenarios</div>
+      <div class="tab" onclick="showSection('alternatives',this)">Alternatives</div>
+      <div class="tab" onclick="showSection('roadmap',this)">Roadmap</div>
+      <div class="tab" onclick="showSection('compare',this)">Compare</div>
+      <div class="tab" onclick="showSection('mentor',this)">AI Mentor</div>
+      <div class="tab" onclick="showSection('graphs',this)">Graphs</div>
+      <div class="tab" onclick="showSection('whatif',this)">What-If</div>
+
+      <div class="tab" onclick="showSection('risk',this)">Risk</div>
+      <div class="tab" onclick="showSection('tracker',this)">Tracker</div>
+      <div class="tab" onclick="showSection('reminders',this)">Reminders</div>
+    </div>
+
+    <div class="dash-content">
+
+      <!-- SUMMARY -->
+      <div class="section active" id="section-summary">
+        <div class="section-header">
+          <div class="section-title">📊 Decision Summary</div>
+          <div class="section-desc">Your input parameters and simulation overview</div>
+        </div>
+        <div class="card" style="margin-bottom:20px">
+          <div class="card-title">
+            <div class="icon">🎯</div> Your Decision
+          </div>
+          <div style="font-size:22px;font-weight:600;color:var(--text);margin-bottom:24px" id="sum-decision">–</div>
+          <div class="grid-4" id="sum-params"></div>
+        </div>
+        <div class="grid-3" id="sum-scores"></div>
+      </div>
+
+      <!-- SCENARIOS -->
+      <div class="section" id="section-scenarios">
+        <div class="section-header">
+          <div class="section-title">🔮 Simulation Results</div>
+          <div class="section-desc">Three possible outcome scenarios based on your parameters</div>
+        </div>
+        <div class="grid-3" id="scenarios-container"></div>
+      </div>
+
+      <!-- ALTERNATIVES -->
+      <div class="section" id="section-alternatives">
+        <div class="section-header">
+          <div class="section-title">💡 Alternative Paths</div>
+          <div class="section-desc">Strategic alternatives worth considering alongside your main decision</div>
+        </div>
+        <div class="grid-2" id="alternatives-container"></div>
+      </div>
+
+      <!-- ROADMAP -->
+      <div class="section" id="section-roadmap">
+        <div class="section-header">
+          <div class="section-title">🛣 Personalized Roadmap</div>
+          <div class="section-desc">Your phase-by-phase action plan to success</div>
+        </div>
+        <div class="completion-banner">
+          <div>
+            <div class="completion-label">Estimated Completion Date</div>
+            <div class="completion-date" id="completion-date">–</div>
+          </div>
+          <div>
+            <div class="completion-label">Total Duration</div>
+            <div class="completion-date" id="total-duration">–</div>
+          </div>
+          <div>
+            <div class="completion-label">Avg Weekly Hours</div>
+            <div class="completion-date" id="avg-weekly">–</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 32px">
+          <div class="section-title" style="font-size: 16px; margin-bottom: 16px;">📚 Top 3 Recommended Resources</div>
+          <div class="grid-3" id="top-resources-container"></div>
+        </div>
+
+        <div class="roadmap-line">
+          <div id="roadmap-container"></div>
+        </div>
+      </div>
+
+      <!-- COMPARE -->
+      <div class="section" id="section-compare">
+        <div class="section-header">
+          <div class="section-title">📊 Decision Comparison</div>
+          <div class="section-desc">Your decision vs two strategic alternatives</div>
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <div class="icon">⚖️</div> Comparison Matrix
+          </div>
+          <div style="overflow-x:auto">
+            <table class="compare-table" id="compare-table"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MENTOR -->
+      <div class="section" id="section-mentor">
+        <div class="section-header">
+          <div class="section-title">🧠 AI Mentor Advice</div>
+          <div class="section-desc">Personalized strategic guidance based on your profile</div>
+        </div>
+        <div class="mentor-card">
+          <div class="mentor-avatar">🤖</div>
+          <div class="mentor-name">Advisor.AI — Decision Intelligence</div>
+          <div class="mentor-text" id="mentor-text">–</div>
+        </div>
+        <div style="margin-top:20px" class="grid-2" id="mentor-tips"></div>
+      </div>
+
+      <!-- GRAPHS -->
+      <div class="section" id="section-graphs">
+        <div class="section-header">
+          <div class="section-title">📈 Success Analytics</div>
+          <div class="section-desc">Visual projections of your decision outcomes</div>
+        </div>
+        <div class="grid-2">
+          <div class="chart-wrapper">
+            <div class="card-title" style="margin-bottom:16px">
+              <div class="icon">📈</div> Success Probability vs Time
+            </div>
+            <canvas id="chart-success"></canvas>
+          </div>
+          <div class="chart-wrapper">
+            <div class="card-title" style="margin-bottom:16px">
+              <div class="icon">⚖️</div> Risk vs Reward Matrix
+            </div>
+            <canvas id="chart-risk"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- WHAT-IF -->
+      <div class="section" id="section-whatif">
+        <div class="section-header">
+          <div class="section-title">🔁 What-If Simulator</div>
+          <div class="section-desc">Adjust parameters and see outcomes update in real time</div>
+        </div>
+        <div class="card">
+          <div class="whatif-controls">
+            <div>
+              <div class="form-label" style="margin-bottom:10px">⏰ Daily Hours: <span id="wi-time-label"
+                  style="color:var(--text)">4</span>h</div>
+              <input type="range" id="wi-time" min="1" max="8" value="4" oninput="updateWhatIf()" />
+            </div>
+            <div>
+              <div class="form-label" style="margin-bottom:10px">⚡ Risk Level: <span id="wi-risk-label"
+                  style="color:var(--text)">5</span>/10</div>
+              <input type="range" id="wi-risk" min="1" max="10" value="5" oninput="updateWhatIf()" />
+            </div>
+          </div>
+          <div class="whatif-output" id="whatif-output"></div>
+        </div>
+      </div>
+
+
+
+
+
+      <!-- RISK -->
+      <div class="section" id="section-risk">
+        <div class="section-header">
+          <div class="section-title">😰 Risk Analyzer</div>
+          <div class="section-desc">Multi-dimensional risk profile of your decision</div>
+        </div>
+        <div class="grid-2">
+          <div class="card" id="risk-indicators"></div>
+          <div class="card" id="risk-radar-wrap">
+            <div class="card-title">
+              <div class="icon">🎯</div> Risk Radar
+            </div>
+            <canvas id="chart-radar" style="max-height:260px"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- TRACKER -->
+      <div class="section" id="section-tracker">
+        <div class="section-header">
+          <div class="section-title">🏆 Goal Tracker</div>
+          <div class="section-desc">Track your roadmap progress — saved automatically</div>
+        </div>
+        <div id="tracker-container"></div>
+      </div>
+
+      <!-- REMINDERS -->
+      <div class="section" id="section-reminders">
+        <div class="section-header">
+          <div class="section-title">🔔 Smart Reminders</div>
+          <div class="section-desc">Daily and weekly simulated reminders to keep you on track</div>
+        </div>
+        <div id="reminders-container"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ===== STATE =====
+    let state = {};
+    let chartInstances = {};
+
+    // ===== UTILS =====
+    function el(id) { return document.getElementById(id); }
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      el(id).classList.add('active');
+    }
+
+    function showSection(id, tab) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el('section-' + id).classList.add('active');
+      tab.classList.add('active');
+
+      // Init charts lazily
+      if (id === 'graphs') initGraphCharts();
+
+      if (id === 'risk') initRadarChart();
+    }
+
+    function showToast(msg) {
+      el('toast-msg').textContent = msg;
+      el('toast').classList.add('show');
+      setTimeout(() => el('toast').classList.remove('show'), 2800);
+    }
+
+    function resetApp() {
+      if (confirm('Start a new simulation?')) {
+        state = {};
+        showPage('page-input');
+        el('inp-decision').value = '';
+      }
+    }
+
+    // ===== SIMULATION LOGIC =====
+    function simulateDecision() {
+      const d = el('inp-decision').value.trim() || 'Career Change';
+      const risk = el('inp-risk').value;
+      const time = parseInt(el('inp-time').value);
+      const skill = el('inp-skill').value;
+      const budget = el('inp-budget').value.trim() || 'Not specified';
+
+      const riskMap = { low: 1, medium: 2, high: 3 };
+      const skillMap = { beginner: 1, intermediate: 2, advanced: 3 };
+
+      const riskScore = riskMap[risk];
+      const skillScore = skillMap[skill];
+      const timeScore = time;
+
+      // Composite scores
+      const successBase = Math.min(95, 20 + (timeScore * 6) + (skillScore * 8) + (riskScore === 2 ? 5 : riskScore === 1 ? 0 : 8));
+      const bestProb = Math.min(95, successBase + 15);
+      const avgProb = Math.max(30, successBase - 5);
+      const worstProb = Math.max(10, successBase - 25);
+
+      // Months based on skill & time
+      const monthsMap = { beginner: 14, intermediate: 9, advanced: 5 };
+      const timeAdj = Math.round((8 - timeScore) * 1.2);
+      const totalMonths = monthsMap[skill] + timeAdj;
+
+      const completionDate = new Date();
+      completionDate.setMonth(completionDate.getMonth() + totalMonths);
+
+      // Budget parsing
+      const budgetNum = parseBudget(budget);
+
+
+      state = {
+        decision: d,
+        risk, time, skill, budget, riskScore, skillScore, timeScore,
+        bestProb, avgProb, worstProb, totalMonths,
+        completionDate: completionDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        budgetNum,
+        successBase
+      };
+
+      return state;
+    }
+
+    function parseBudget(b) {
+      const match = b.replace(/,/g, '').match(/\d+/);
+      return match ? parseInt(match[0]) : 2000;
+    }
+
+
+
+    function generateScenarios() {
+      const { decision, risk, bestProb, avgProb, worstProb, timeScore, successBase } = state;
+      const kw = decision.split(' ').slice(-2).join(' ');
+      return [
+        {
+          cls: 'best',
+          badge: '🌟 Best Case',
+          title: 'Breakthrough Success',
+          desc: `You master ${kw} faster than expected. With ${timeScore}h/day of focused effort, you land high-value opportunities within the first phase. Your ${risk} risk tolerance pays off with above-market returns and career acceleration.`,
+          prob: bestProb
+        },
+        {
+          cls: 'avg',
+          badge: '📊 Average Case',
+          title: 'Steady Progress',
+          desc: `You make consistent progress with typical setbacks. The learning curve proves manageable, and you establish yourself steadily. Income/results arrive on schedule with occasional plateaus that test your resolve.`,
+          prob: avgProb
+        },
+        {
+          cls: 'worst',
+          badge: '⚠️ Worst Case',
+          title: 'Delayed Results',
+          desc: `External factors slow progress — market shifts, unexpected costs, or skill gaps create friction. Recovery is possible but requires pivoting strategy and extending your timeline by 30–50%.`,
+          prob: worstProb
+        }
+      ];
+    }
+
+    function suggestAlternatives() {
+      const kw = state.decision;
+      const { skill, risk, time } = state;
+      const alts = [];
+
+      // Scenario 1: Risk Tolerance Alternative
+      if (risk === 'high') {
+        alts.push({
+          title: `Full Immersion (${kw})`,
+          risk: 'high', speed: 'Fast',
+          desc: `Since your risk tolerance is high, go all-in on ${kw}. Liquidate safety nets, dedicate 100% focus. Skip the slow transition and jump into the deep end.`
+        });
+      } else if (risk === 'low') {
+        alts.push({
+          title: 'Safe Parallel Track',
+          risk: 'low', speed: 'Slow',
+          desc: `Protect your downside. Keep your primary income and slowly test the waters of ${kw} on weekends to validate the market before risking capital.`
+        });
+      } else {
+        alts.push({
+          title: 'Calculated Hybrid',
+          risk: 'med', speed: 'Medium',
+          desc: `A balanced approach: negotiate reduced hours at your current focus to free up predictable capacity for ${kw}. Manageable risk with steady growth.`
+        });
+      }
+
+      // Scenario 2: Current Skill Leverage
+      if (skill === 'beginner') {
+        alts.push({
+          title: 'Mentorship Route',
+          risk: 'low', speed: 'Medium',
+          desc: `As a beginner in ${kw}, seek an apprenticeship or entry-level role. Trade immediate earning potential for accelerated, guided learning.`
+        });
+      } else if (skill === 'intermediate') {
+        alts.push({
+          title: 'Freelance Hustle',
+          risk: 'med', speed: 'Fast',
+          desc: `Leverage your intermediate ability to take on specific ${kw} freelance contracts. Build a public track record and get paid to practice.`
+        });
+      } else {
+        alts.push({
+          title: 'Premium Consulting',
+          risk: 'low', speed: 'Fast',
+          desc: `You already possess advanced skills. Skip standard applications and market yourself as an elite ${kw} consultant commanding premium rates.`
+        });
+      }
+
+      // Scenario 3: Time Constraint Strategy
+      if (time >= 5) {
+        alts.push({
+          title: 'Intensive Bootcamp',
+          risk: 'high', speed: 'Fast',
+          desc: `You have ${time}+ hours daily. Do a 12-week intensive self-bootcamp in ${kw}. Treat it like a full-time job to compress years of progress into months.`
+        });
+      } else if (time >= 3) {
+        alts.push({
+          title: 'Consistent Daily Build',
+          risk: 'med', speed: 'Medium',
+          desc: `Commit your ${time} hours/day strictly. 50% for core fundamentals of ${kw}, 50% for building a portfolio. Consistency is your biggest weapon.`
+        });
+      } else {
+        alts.push({
+          title: 'Micro-Habit Stacking',
+          risk: 'low', speed: 'Slow',
+          desc: `With only ${time}h/day, don't rush. Focus on 30-minute daily micro-habits around ${kw}. Compound interest on tiny actions will yield long-term results.`
+        });
+      }
+
+      // Scenario 4: Creative/Adjacent Pivot
+      alts.push({
+        title: `Content-Led ${kw}`,
+        risk: 'low', speed: 'Slow',
+        desc: `Instead of just pursuing ${kw} privately, document your entire journey publicly. Build an audience that acts as a magnet for future opportunities.`
+      });
+
+      return alts;
+    }
+
+    function mockYouTubeSearch(kw, phaseName, skill) {
+      const enc = encodeURIComponent(`${kw} ${phaseName} tutorial ${skill}`);
+      return {
+        title: `▶ Watch: ${phaseName} Guide for ${kw}`,
+        url: `https://www.youtube.com/results?search_query=${enc}`
+      };
+    }
+
+    function fetchTopResources(kw, skill) {
+      if (skill === 'beginner') {
+        return [
+          { title: 'The Ultimate Beginner Guide', desc: `A complete ground-up conceptual introduction to ${kw}.` },
+          { title: 'Interactive Free Courses', desc: `Step-by-step interactive paths for building foundational ${kw} capability.` },
+          { title: 'Crash Course Video', desc: `A concise 2-hour video series covering all core ${kw} mechanics.` }
+        ];
+      } else if (skill === 'intermediate') {
+        return [
+          { title: 'Advanced Design Patterns', desc: `Standardizing your ${kw} workflows and architecture.` },
+          { title: 'Clone Project Walkthroughs', desc: `Building complex, full-scale applications using ${kw}.` },
+          { title: 'Official Documentation', desc: `Taking a deep dive into the raw specs and technical APIs.` }
+        ];
+      } else {
+        return [
+          { title: 'Enterprise Architecture', desc: `Scaling and optimizing large-scale ${kw} implementations.` },
+          { title: 'Open Source Repositories', desc: `Reading and contributing to production-level ${kw} architectures.` },
+          { title: 'Advanced System Design', desc: `High-level system design concepts for specialized ${kw} deployment.` }
+        ];
+      }
+    }
+
+    function createRoadmap() {
+      const { skill, time, decision, totalMonths } = state;
+      const phases = [
+        {
+          name: 'Foundation',
+          duration: skill === 'advanced' ? '4 weeks' : skill === 'intermediate' ? '6 weeks' : '8 weeks',
+          difficulty: 'Beginner',
+          weeklyHrs: time * 7,
+          video: mockYouTubeSearch(decision, 'Foundation', skill),
+          tasks: [
+            `Research the ${decision} landscape thoroughly`,
+            'Complete foundational learning resources',
+            'Join communities and find mentors',
+            'Set up your learning environment & tools',
+            'Define clear 90-day milestones'
+          ]
+        },
+        {
+          name: 'Core Skills',
+          duration: skill === 'advanced' ? '6 weeks' : '10 weeks',
+          difficulty: 'Intermediate',
+          weeklyHrs: time * 7,
+          video: mockYouTubeSearch(decision, 'Core Skills', skill),
+          tasks: [
+            'Deep-dive into core concepts daily',
+            'Build 2–3 small practice projects',
+            'Connect with practitioners in the field',
+            'Start sharing progress publicly',
+            'Identify your niche within the space'
+          ]
+        },
+        {
+          name: 'Advanced Mastery',
+          duration: skill === 'advanced' ? '8 weeks' : '12 weeks',
+          difficulty: 'Advanced',
+          weeklyHrs: time * 7,
+          video: mockYouTubeSearch(decision, 'Mastery', skill),
+          tasks: [
+            'Work on a significant portfolio piece',
+            'Seek feedback from experts',
+            'Start building your personal brand',
+            'Explore monetization pathways',
+            'Attend events or conferences'
+          ]
+        },
+        {
+          name: 'Launch & Scale',
+          duration: '4–8 weeks',
+          difficulty: 'Expert',
+          weeklyHrs: time * 7,
+          video: mockYouTubeSearch(decision, 'Launch', skill),
+          tasks: [
+            'Launch publicly (product, service, or role)',
+            'Collect testimonials and case studies',
+            'Optimize your income model',
+            'Build systems to scale efforts',
+            'Review results and plan next phase'
+          ]
+        }
+      ];
+      return phases;
+    }
+
+    function analyzeRisk() {
+      const { riskScore, timeScore, skillScore, budgetNum } = state;
+
+      const financial = budgetNum < 1000 ? 'high' : budgetNum < 5000 ? 'med' : 'low';
+      const time = timeScore < 3 ? 'high' : timeScore < 5 ? 'med' : 'low';
+      const mental = riskScore === 3 ? 'high' : riskScore === 2 ? 'med' : 'low';
+      const competition = riskScore === 1 ? 'low' : riskScore === 2 ? 'med' : 'high';
+
+      const map = { low: 30, med: 60, high: 85 };
+
+      return [
+        { name: 'Financial Risk', level: financial, pct: map[financial] },
+        { name: 'Time Risk', level: time, pct: map[time] },
+        { name: 'Mental Stress', level: mental, pct: map[mental] },
+        { name: 'Competition Level', level: competition, pct: map[competition] },
+        { name: 'Opportunity Cost', level: timeScore > 5 ? 'high' : 'med', pct: timeScore > 5 ? 80 : 50 },
+        { name: 'Skill Gap Risk', level: skillScore === 1 ? 'high' : skillScore === 2 ? 'med' : 'low', pct: skillScore === 1 ? 80 : skillScore === 2 ? 50 : 25 }
+      ];
+    }
+
+    function generateMentor() {
+      const { decision, risk, skill, time, bestProb, totalMonths } = state;
+      const riskLabel = { low: 'conservative', medium: 'balanced', high: 'bold' }[risk];
+      const advList = [
+        `Based on your ${riskLabel} risk profile and ${skill} skill level, I recommend starting ${skill === 'beginner' ? 'with a structured learning path and clear milestones' : 'by building immediately — learning by doing accelerates your timeline'}.`,
+        ` With ${time} hours per day, you're in the ${time >= 4 ? 'serious commitment' : 'part-time learner'} bracket. ${time >= 4 ? 'This pace is strong — protect this time fiercely.' : 'Consider increasing to 4h+ to halve your timeline.'}`,
+        ` Your simulation shows a ${bestProb}% best-case success probability — higher than most people who never simulate at all. The biggest differentiator will be consistency over a ${totalMonths}-month horizon.`,
+        ` One underrated move: build in public from month 2. Sharing your ${decision} journey builds an audience before you need one, and creates accountability that compounds over time.`
+      ];
+      return advList.join('');
+    }
+
+    // ===== RENDER FUNCTIONS =====
+    function renderSummary() {
+      const { decision, risk, time, skill, budget, successBase } = state;
+
+      el('sum-decision').textContent = decision;
+
+      const params = [
+        { l: 'Risk Level', v: risk.charAt(0).toUpperCase() + risk.slice(1) },
+        { l: 'Daily Time', v: time + ' hrs/day' },
+        { l: 'Skill Level', v: skill.charAt(0).toUpperCase() + skill.slice(1) },
+        { l: 'Budget', v: budget || 'Not set' }
+      ];
+
+      el('sum-params').innerHTML = params.map(p => `
+    <div class="summary-item">
+      <div class="summary-label">${p.l}</div>
+      <div class="summary-value">${p.v}</div>
+    </div>
+  `).join('');
+
+      const scores = [
+        { label: 'Overall Success Score', val: successBase + '%', color: 'var(--cyan)', icon: '🎯' },
+        { label: 'Recommended Action', val: risk === 'high' ? 'Jump In' : risk === 'medium' ? 'Phased Approach' : 'Side Project First', color: 'var(--gold)', icon: '⚡' },
+        { label: 'Est. Time to Results', val: state.totalMonths + ' months', color: 'var(--green)', icon: '📅' }
+      ];
+
+      el('sum-scores').innerHTML = scores.map(s => `
+    <div class="card">
+      <div class="card-title"><div class="icon">${s.icon}</div>${s.label}</div>
+      <div style="font-family:var(--mono);font-size:32px;font-weight:700;color:${s.color}">${s.val}</div>
+    </div>
+  `).join('');
+    }
+
+    function renderScenarios() {
+      const scenarios = generateScenarios();
+      el('scenarios-container').innerHTML = scenarios.map(s => `
+    <div class="scenario-card ${s.cls}">
+      <div class="scenario-badge">${s.badge}</div>
+      <div class="scenario-title">${s.title}</div>
+      <div class="scenario-desc">${s.desc}</div>
+      <div class="prob-label">
+        <span>Probability</span>
+        <span style="font-family:var(--mono);font-weight:700">${s.prob}%</span>
+      </div>
+      <div class="prob-bar"><div class="prob-fill" style="width:${s.prob}%"></div></div>
+    </div>
+  `).join('');
+    }
+
+    function renderAlternatives() {
+      const alts = suggestAlternatives();
+      el('alternatives-container').innerHTML = alts.map(a => `
+    <div class="alt-card">
+      <div class="alt-title">${a.title}</div>
+      <div class="alt-desc">${a.desc}</div>
+      <div class="alt-meta">
+        <span class="meta-chip chip-risk-${a.risk}">⚡ ${a.risk === 'low' ? 'Low' : a.risk === 'med' ? 'Medium' : 'High'} Risk</span>
+        <span class="meta-chip chip-speed">🚀 ${a.speed} Track</span>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    function renderRoadmap() {
+      const phases = createRoadmap();
+      const { completionDate, totalMonths, time, decision, skill } = state;
+
+      el('completion-date').textContent = completionDate;
+      el('total-duration').textContent = totalMonths + ' months';
+      el('avg-weekly').textContent = (time * 7) + 'h/week';
+
+      // Render Top 3 Starter Resources dynamically
+      const resources = fetchTopResources(decision, skill);
+      el('top-resources-container').innerHTML = resources.map(r => `
+        <a href="https://google.com/search?q=${encodeURIComponent(r.title + ' for ' + decision)}" target="_blank" class="resource-card">
+          <div class="resource-title">${r.title}</div>
+          <div class="resource-desc">${r.desc}</div>
+        </a>
+      `).join('');
+
+      const saved = JSON.parse(localStorage.getItem('lds_tasks') || '{}');
+
+      el('roadmap-container').innerHTML = phases.map((ph, i) => `
+    <div class="phase-wrapper">
+      <div class="phase-dot"></div>
+      <div class="phase-card" id="phase-${i}">
+        <div class="phase-header">
+          <div style="display:flex;align-items:center;gap:14px">
+            <div class="phase-num">${i + 1}</div>
+            <div>
+              <div class="phase-title">Phase ${i + 1}: ${ph.name}</div>
+              <div class="phase-duration">${ph.duration} · ${ph.difficulty}</div>
+            </div>
+          </div>
+        </div>
+        <ul class="phase-tasks">
+          ${ph.tasks.map((t, j) => {
+        const key = `phase${i}_task${j}`;
+        const done = saved[key] || false;
+        return `<li class="phase-task ${done ? 'done' : ''}" id="${key}" onclick="toggleTask('${key}')">
+              <div class="task-check">${done ? '✓' : ''}</div>
+              <span>${t}</span>
+            </li>`;
+      }).join('')}
+        </ul>
+        
+        <a href="${ph.video.url}" target="_blank" class="video-link">
+          ${ph.video.title}
+        </a>
+
+        <div class="phase-footer">
+          <div class="phase-stat"><span class="summary-label">Weekly Hours</span><strong>${ph.weeklyHrs}h</strong></div>
+          <div class="phase-stat"><span class="summary-label">Duration</span><strong>${ph.duration}</strong></div>
+          <div class="phase-stat"><span class="summary-label">Difficulty</span><strong>${ph.difficulty}</strong></div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    function toggleTask(key) {
+      const el_ = el(key);
+      if (!el_) return;
+      const done = !el_.classList.contains('done');
+      el_.classList.toggle('done', done);
+      el_.querySelector('.task-check').textContent = done ? '✓' : '';
+
+      const saved = JSON.parse(localStorage.getItem('lds_tasks') || '{}');
+      saved[key] = done;
+      localStorage.setItem('lds_tasks', JSON.stringify(saved));
+      showToast(done ? '✅ Task completed!' : 'Task unmarked');
+    }
+
+    function renderComparison() {
+      const { decision } = state;
+      const alts = suggestAlternatives();
+      const rows = [
+        { metric: 'Upfront Cost', vals: ['$$$ High', '$ Low', '$ Medium', '$$ Medium'] },
+        { metric: 'Time to Income', vals: ['6–12 months', '12–18 months', '3–6 months', '4–8 months'] },
+        { metric: 'Risk Level', vals: ['High', 'Low', 'Medium', 'Low'] },
+        { metric: 'Income Potential', vals: ['Very High', 'Medium', 'High', 'Medium'] },
+        { metric: 'Flexibility', vals: ['Low', 'High', 'High', 'High'] },
+        { metric: 'Skill Required', vals: ['Advanced', 'Beginner', 'Intermediate', 'Intermediate'] }
+      ];
+
+      const colorMap = {
+        'High': 'cell-bad', 'Very High': 'cell-good', 'Medium': 'cell-ok',
+        'Low': 'cell-good', '$$$ High': 'cell-bad', '$$ Medium': 'cell-ok',
+        '$ Low': 'cell-good', '$ Medium': 'cell-good'
+      };
+
+      const opts = [decision, alts[0].title, alts[1].title, alts[2].title];
+
+      el('compare-table').innerHTML = `
+    <thead>
+      <tr>
+        <th>Metric</th>
+        ${opts.map(o => `<th style="color:var(--text);font-size:11px">${o}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r => `
+        <tr>
+          <td>${r.metric}</td>
+          ${r.vals.map(v => `<td class="${colorMap[v] || ''}">${v}</td>`).join('')}
+        </tr>
+      `).join('')}
+    </tbody>
+  `;
+    }
+
+    function renderMentor() {
+      el('mentor-text').textContent = generateMentor();
+
+      const tips = [
+        { icon: '🧭', title: 'Your Next Step', body: `This week: block 2 hours to audit your current skill gaps vs what ${state.decision} demands.` },
+        { icon: '⏰', title: 'Time Audit', body: `Track exactly how you spend your time for 3 days. You'll find 1–2 hours you didn't know you had.` },
+        { icon: '👥', title: 'Community First', body: `Find 3 people who've already done what you want. Study their path, not just their result.` },
+        { icon: '📓', title: 'Document Everything', body: `Keep a decision journal. In 6 months, you'll be grateful you captured your thinking.` }
+      ];
+
+      el('mentor-tips').innerHTML = tips.map(t => `
+    <div class="card">
+      <div style="font-size:24px;margin-bottom:10px">${t.icon}</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:8px">${t.title}</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.6">${t.body}</div>
+    </div>
+  `).join('');
+    }
+
+
+
+
+
+    function renderRisk() {
+      const risks = analyzeRisk();
+      el('risk-indicators').innerHTML = `
+    <div class="card-title"><div class="icon">😰</div> Risk Indicators</div>
+    <div class="risk-indicator">
+      ${risks.map(r => `
+        <div class="risk-row">
+          <div class="risk-name">${r.name}</div>
+          <div class="risk-bar-wrap"><div class="risk-fill ${r.level}" style="width:${r.pct}%"></div></div>
+          <div class="risk-badge ${r.level}">${r.level}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+    }
+
+    function renderTracker() {
+      const phases = createRoadmap();
+      const saved = JSON.parse(localStorage.getItem('lds_tasks') || '{}');
+      const total = phases.reduce((a, p) => a + p.tasks.length, 0);
+      const done = Object.values(saved).filter(Boolean).length;
+      const pct = Math.round((done / total) * 100);
+
+      el('tracker-container').innerHTML = `
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title"><div class="icon">📊</div> Overall Progress</div>
+      <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+        <div>
+          <div style="font-family:var(--mono);font-size:48px;font-weight:700;color:var(--cyan)">${pct}%</div>
+          <div style="font-size:13px;color:var(--muted)">${done} of ${total} tasks completed</div>
+        </div>
+        <div style="flex:1;min-width:200px">
+          <div class="prob-bar" style="height:12px;border-radius:12px">
+            <div class="prob-fill best" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    ${phases.map((ph, i) => {
+        const pDone = ph.tasks.filter((_, j) => saved[`phase${i}_task${j}`]).length;
+        const pPct = Math.round((pDone / ph.tasks.length) * 100);
+        return `
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div class="phase-num">${i + 1}</div>
+              <div>
+                <div style="font-size:14px;font-weight:600">Phase ${i + 1}: ${ph.name}</div>
+                <div style="font-family:var(--mono);font-size:10px;color:var(--muted)">${pDone}/${ph.tasks.length} tasks · ${pPct}%</div>
+              </div>
+            </div>
+          </div>
+          <div class="prob-bar" style="height:6px">
+            <div class="prob-fill best" style="width:${pPct}%"></div>
+          </div>
+        </div>
+      `;
+      }).join('')}
+  `;
+    }
+
+    function startJourneyTimer() {
+      if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+        Notification.requestPermission();
+      }
+
+      localStorage.setItem('lds_session_active', 'true');
+      const ns = new Date();
+      ns.setHours(ns.getHours() + 24); // Schedule next real session for tomorrow
+      const timeString = ns.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      localStorage.setItem('lds_next_session', timeString);
+
+      // Update UI instantaneously
+      const btn = el('btn-start-journey');
+      const stat = el('reminder-status');
+      if (btn && stat) {
+        btn.textContent = "Session Active";
+        btn.style.background = "var(--green)";
+        btn.style.pointerEvents = "none";
+        stat.textContent = `Reminder Set for ${timeString}`;
+        stat.style.color = "var(--green)";
+      }
+
+      // Trigger a 4-second demo notification to prove the API logic functions for the user immediately
+      setTimeout(() => {
+        if (Notification.permission === "granted") {
+          new Notification("Time to execute! 🚀", {
+            body: `Your ${state.time}h session for ${state.decision} is ready. Let's build!`,
+          });
+        } else {
+          // Fallback if browser notifications are blocked/denied
+          showToast(`Alarm: Time to work on your ${state.decision} path!`);
+        }
+      }, 4000);
+    }
+
+    function renderReminders() {
+      const { decision, time } = state;
+      const today = new Date();
+      const items = [
+        { type: 'daily', icon: '⏰', title: 'Morning Focus Block', time: '7:00 AM daily', msg: `Start your ${time}h session on ${decision}. Today's focus: one specific learning goal or project milestone.` },
+        { type: 'daily', icon: '📝', title: 'Evening Review', time: '9:00 PM daily', msg: `Log what you learned, what blocked you, and one thing to do differently tomorrow. 5 minutes of reflection compounds massively.` },
+        { type: 'weekly', icon: '📊', title: 'Weekly Progress Review', time: 'Every Sunday', msg: `Compare this week's output vs last week. Are you accelerating? Where did you lose hours? Adjust your system, not your goal.` },
+        { type: 'weekly', icon: '🤝', title: 'Network Check-In', time: 'Every Wednesday', msg: `Reach out to one person in the ${decision} space. Share what you built, ask a question, or offer help. Relationships compound faster than skills.` },
+        { type: 'daily', icon: '🎯', title: 'Micro-Win Capture', time: '12:00 PM daily', msg: `Note one small win from today's work — no matter how tiny. This trains your brain to notice progress and builds intrinsic motivation.` },
+        { type: 'weekly', icon: '🔮', title: 'Scenario Review', time: 'Every Friday', msg: `Are you trending toward your Best Case scenario? If not, what one change would shift the trajectory? Revisit your simulator as your situation evolves.` }
+      ];
+
+      const isActive = localStorage.getItem('lds_session_active') === 'true';
+      const scheduledInfo = localStorage.getItem('lds_next_session') || '--';
+
+      const controlsHtml = `
+        <div class="card" style="margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; border-color:var(--cyan);">
+          <div>
+            <div class="card-title" style="margin-bottom:8px;"><div class="icon">🚀</div> Journey Status</div>
+            <div id="reminder-status" style="font-size:13px; color:${isActive ? 'var(--green)' : 'var(--muted)'}; font-weight: 500;">
+              ${isActive ? 'Reminder Set for ' + scheduledInfo : 'No active session.'}
+            </div>
+          </div>
+          <button id="btn-start-journey" onclick="startJourneyTimer()" class="btn-primary" style="padding: 12px 24px; font-size: 13px; ${isActive ? 'background:var(--green); pointer-events:none;' : ''}">
+            ${isActive ? 'Session Active' : "🚀 Start Today's Session"}
+          </button>
+        </div>
+      `;
+
+      el('reminders-container').innerHTML = controlsHtml + items.map(r => `
+    <div class="reminder-item">
+      <div class="reminder-icon ${r.type}">${r.icon}</div>
+      <div>
+        <div class="reminder-title">${r.title}</div>
+        <div class="reminder-time">${r.time}</div>
+        <div class="reminder-msg">${r.msg}</div>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    // ===== CHARTS =====
+    function destroyChart(id) {
+      if (chartInstances[id]) {
+        chartInstances[id].destroy();
+        chartInstances[id] = null;
+      }
+    }
+
+    const chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Sora', size: 11 }, boxWidth: 12 } }
+      }
+    };
+
+    function initGraphCharts() {
+      const { time, bestProb, avgProb } = state;
+
+      // Success vs Time
+      destroyChart('success');
+      const labels = ['1h', '2h', '3h', '4h', '5h', '6h', '7h', '8h'];
+      const best = labels.map((_, i) => Math.min(95, 25 + i * 9));
+      const avg = labels.map((_, i) => Math.min(80, 15 + i * 7));
+
+      chartInstances['success'] = new Chart(el('chart-success'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Best Case',
+              data: best,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16,185,129,0.08)',
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#10b981',
+              pointRadius: 4
+            },
+            {
+              label: 'Average Case',
+              data: avg,
+              borderColor: '#f59e0b',
+              backgroundColor: 'rgba(245,158,11,0.08)',
+              fill: true,
+              tension: 0.4,
+              pointBackgroundColor: '#f59e0b',
+              pointRadius: 4
+            }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+            y: {
+              ticks: { color: '#64748b', callback: v => v + '%' },
+              grid: { color: 'rgba(255,255,255,0.04)' },
+              min: 0, max: 100
+            }
+          }
+        }
+      });
+
+      // Risk vs Reward
+      destroyChart('risk');
+      chartInstances['risk'] = new Chart(el('chart-risk'), {
+        type: 'bubble',
+        data: {
+          datasets: [
+            { label: 'Your Decision', data: [{ x: state.riskScore * 3, y: bestProb, r: 14 }], backgroundColor: 'rgba(56,189,248,0.6)', borderColor: '#38bdf8' },
+            { label: 'Low Risk Path', data: [{ x: 2, y: 55, r: 10 }], backgroundColor: 'rgba(16,185,129,0.5)', borderColor: '#10b981' },
+            { label: 'High Risk Path', data: [{ x: 8, y: 85, r: 12 }], backgroundColor: 'rgba(239,68,68,0.5)', borderColor: '#ef4444' }
+          ]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            x: { title: { display: true, text: 'Risk Level', color: '#64748b' }, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0, max: 10 },
+            y: { title: { display: true, text: 'Reward Potential %', color: '#64748b' }, ticks: { color: '#64748b', callback: v => v + '%' }, grid: { color: 'rgba(255,255,255,0.04)' }, min: 0, max: 100 }
+          }
+        }
+      });
+    }
+
+
+
+    function initRadarChart() {
+      destroyChart('radar');
+      const risks = analyzeRisk();
+      chartInstances['radar'] = new Chart(el('chart-radar'), {
+        type: 'radar',
+        data: {
+          labels: risks.map(r => r.name),
+          datasets: [{
+            label: 'Risk Profile',
+            data: risks.map(r => r.pct),
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56,189,248,0.12)',
+            pointBackgroundColor: '#38bdf8',
+            pointRadius: 4,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          ...chartDefaults,
+          scales: {
+            r: {
+              angleLines: { color: 'rgba(255,255,255,0.06)' },
+              grid: { color: 'rgba(255,255,255,0.06)' },
+              pointLabels: { color: '#94a3b8', font: { size: 10 } },
+              ticks: { color: '#64748b', backdropColor: 'transparent', stepSize: 25 },
+              min: 0, max: 100
+            }
+          }
+        }
+      });
+    }
+
+    // ===== WHAT-IF =====
+    function updateWhatIf() {
+      const t = parseInt(el('wi-time').value);
+      const r = parseInt(el('wi-risk').value);
+      el('wi-time-label').textContent = t;
+      el('wi-risk-label').textContent = r;
+
+      const skillScore = state.skillScore || 2;
+      const success = Math.min(95, 20 + (t * 6) + (skillScore * 8) + r * 2);
+      const months = Math.max(2, Math.round(18 - t * 1.2 - r * 0.5));
+      const income = Math.round(600 + t * 180 + r * 100 + skillScore * 200);
+      const stress = Math.min(10, Math.round(r * 0.7 + (8 - t) * 0.4));
+
+      el('whatif-output').innerHTML = [
+        { l: 'Success Chance', v: success + '%', c: success > 70 ? 'var(--green)' : success > 45 ? 'var(--gold)' : 'var(--red)' },
+        { l: 'Time to Results', v: months + ' mo', c: 'var(--cyan)' },
+        { l: 'Income Potential', v: '$' + income.toLocaleString(), c: 'var(--green)' },
+        { l: 'Stress Level', v: stress + '/10', c: stress > 7 ? 'var(--red)' : stress > 4 ? 'var(--gold)' : 'var(--green)' }
+      ].map(m => `
+    <div class="wi-metric">
+      <div class="wi-value" style="color:${m.c}">${m.v}</div>
+      <div class="wi-label">${m.l}</div>
+    </div>
+  `).join('');
+    }
+
+    // ===== SAVE / DOWNLOAD =====
+    function saveProgress() {
+      localStorage.setItem('lds_state', JSON.stringify(state));
+      showToast('💾 Progress saved to local storage!');
+    }
+
+    function downloadRoadmap() {
+      const phases = createRoadmap();
+      const { decision, completionDate, totalMonths } = state;
+      let text = `LIFE DECISION SIMULATOR — ROADMAP\n`;
+      text += `Decision: ${decision}\n`;
+      text += `Estimated Completion: ${completionDate} (${totalMonths} months)\n\n`;
+
+      phases.forEach((ph, i) => {
+        text += `\nPHASE ${i + 1}: ${ph.name.toUpperCase()} (${ph.duration})\n`;
+        text += `Difficulty: ${ph.difficulty} | Weekly Hours: ${ph.weeklyHrs}h\n`;
+        ph.tasks.forEach((t, j) => { text += `  [${j + 1}] ${t}\n`; });
+      });
+
+      text += `\n\nAI MENTOR ADVICE:\n${generateMentor()}`;
+
+      const blob = new Blob([text], { type: 'text/plain' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'life-decision-roadmap.txt';
+      a.click();
+      showToast('📄 Roadmap downloaded!');
+    }
+
+    // ===== SIMULATION FLOW =====
+    function startSimulation() {
+      if (!el('inp-decision').value.trim()) {
+        el('inp-decision').focus();
+        el('inp-decision').style.borderColor = 'var(--red)';
+        setTimeout(() => el('inp-decision').style.borderColor = '', 1500);
+        return;
+      }
+
+      let isLoading = true;
+      showPage('page-loading');
+      el('loader-text').textContent = 'Analyzing decision matrix...';
+
+      try {
+        // Run simulation
+        simulateDecision();
+        isLoading = false;
+
+        // Strict conditional check before showing results
+        if (state && state.decision && !isLoading) {
+          // Render dashboard
+          el('dash-title').textContent = state.decision;
+          el('dash-subtitle').textContent = `Simulation complete · ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`;
+
+          renderSummary();
+          renderScenarios();
+          renderAlternatives();
+          renderRoadmap();
+          renderComparison();
+          renderMentor();
+
+          renderRisk();
+          renderTracker();
+          renderReminders();
+
+          // Init what-if defaults
+          el('wi-time').value = state.time;
+          el('wi-time-label').textContent = state.time;
+          updateWhatIf();
+
+          showPage('page-dashboard');
+
+          // Switch to summary tab
+          document.querySelectorAll('.tab')[0].click();
+        } else {
+          throw new Error("Simulation data is null or empty.");
+        }
+      } catch (err) {
+        isLoading = false;
+        showPage('page-input');
+        console.error("Simulation error:", err);
+        showToast("Error generating simulation. Please try again.");
+      }
+    }
+
+    // Init on load
+    window.onload = () => {
+      const saved = localStorage.getItem('lds_state');
+      if (saved) {
+        try {
+          const s = JSON.parse(saved);
+          if (s.decision) {
+            el('inp-decision').value = s.decision;
+            if (s.risk) el('inp-risk').value = s.risk;
+            if (s.time) { el('inp-time').value = s.time; el('time-val').textContent = s.time; }
+            if (s.skill) el('inp-skill').value = s.skill;
+            if (s.budget) el('inp-budget').value = s.budget;
+          }
+        } catch (e) { }
+      }
+    };
+  </script>
+</body>
+
+</html>
