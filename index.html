@@ -984,36 +984,6 @@
       font-size: 13px;
     }
 
-    /* COMPARISON TABLE */
-    .compare-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    .compare-table th,
-    .compare-table td {
-      padding: 14px 18px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-      font-size: 13px;
-    }
-
-    .compare-table th {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: 1px;
-      color: var(--muted);
-      text-transform: uppercase;
-    }
-
-    .compare-table tr:hover td {
-      background: rgba(56, 189, 248, 0.03);
-    }
-
-    .compare-table td:first-child {
-      color: var(--muted2);
-    }
-
     .cell-good {
       color: var(--green);
       font-weight: 500;
@@ -1090,41 +1060,6 @@
       max-height: 260px;
     }
 
-    /* WHAT-IF */
-    .whatif-controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-      margin-bottom: 28px;
-    }
-
-    .whatif-output {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-
-    .wi-metric {
-      background: var(--card2);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-    }
-
-    .wi-value {
-      font-family: var(--mono);
-      font-size: 26px;
-      font-weight: 700;
-      color: var(--cyan);
-      margin-bottom: 4px;
-      transition: all 0.3s;
-    }
-
-    .wi-label {
-      font-size: 11px;
-      color: var(--muted);
-    }
 
 
 
@@ -1320,13 +1255,6 @@
         grid-template-columns: 1fr;
       }
 
-      .whatif-controls {
-        grid-template-columns: 1fr;
-      }
-
-      .whatif-output {
-        grid-template-columns: 1fr 1fr;
-      }
 
       .form-card {
         padding: 24px;
@@ -1583,10 +1511,8 @@
       <div class="tab" onclick="showSection('scenarios',this)">Scenarios</div>
       <div class="tab" onclick="showSection('alternatives',this)">Alternatives</div>
       <div class="tab" onclick="showSection('roadmap',this)">Roadmap</div>
-      <div class="tab" onclick="showSection('compare',this)">Compare</div>
       <div class="tab" onclick="showSection('mentor',this)">AI Mentor</div>
       <div class="tab" onclick="showSection('graphs',this)">Graphs</div>
-      <div class="tab" onclick="showSection('whatif',this)">What-If</div>
 
       <div class="tab" onclick="showSection('risk',this)">Risk</div>
       <div class="tab" onclick="showSection('tracker',this)">Tracker</div>
@@ -1659,23 +1585,6 @@
           <div id="roadmap-container"></div>
         </div>
       </div>
-
-      <!-- COMPARE -->
-      <div class="section" id="section-compare">
-        <div class="section-header">
-          <div class="section-title">📊 Decision Comparison</div>
-          <div class="section-desc">Your decision vs two strategic alternatives</div>
-        </div>
-        <div class="card">
-          <div class="card-title">
-            <div class="icon">⚖️</div> Comparison Matrix
-          </div>
-          <div style="overflow-x:auto">
-            <table class="compare-table" id="compare-table"></table>
-          </div>
-        </div>
-      </div>
-
       <!-- MENTOR -->
       <div class="section" id="section-mentor">
         <div class="section-header">
@@ -1712,28 +1621,7 @@
         </div>
       </div>
 
-      <!-- WHAT-IF -->
-      <div class="section" id="section-whatif">
-        <div class="section-header">
-          <div class="section-title">🔁 What-If Simulator</div>
-          <div class="section-desc">Adjust parameters and see outcomes update in real time</div>
-        </div>
-        <div class="card">
-          <div class="whatif-controls">
-            <div>
-              <div class="form-label" style="margin-bottom:10px">⏰ Daily Hours: <span id="wi-time-label"
-                  style="color:var(--text)">4</span>h</div>
-              <input type="range" id="wi-time" min="1" max="8" value="4" oninput="updateWhatIf()" />
-            </div>
-            <div>
-              <div class="form-label" style="margin-bottom:10px">⚡ Risk Level: <span id="wi-risk-label"
-                  style="color:var(--text)">5</span>/10</div>
-              <input type="range" id="wi-risk" min="1" max="10" value="5" oninput="updateWhatIf()" />
-            </div>
-          </div>
-          <div class="whatif-output" id="whatif-output"></div>
-        </div>
-      </div>
+
 
 
 
@@ -2232,45 +2120,6 @@
       localStorage.setItem('lds_tasks', JSON.stringify(saved));
       showToast(done ? '✅ Task completed!' : 'Task unmarked');
     }
-
-    function renderComparison() {
-      const { decision } = state;
-      const alts = suggestAlternatives();
-      const rows = [
-        { metric: 'Upfront Cost', vals: ['$$$ High', '$ Low', '$ Medium', '$$ Medium'] },
-        { metric: 'Time to Income', vals: ['6–12 months', '12–18 months', '3–6 months', '4–8 months'] },
-        { metric: 'Risk Level', vals: ['High', 'Low', 'Medium', 'Low'] },
-        { metric: 'Income Potential', vals: ['Very High', 'Medium', 'High', 'Medium'] },
-        { metric: 'Flexibility', vals: ['Low', 'High', 'High', 'High'] },
-        { metric: 'Skill Required', vals: ['Advanced', 'Beginner', 'Intermediate', 'Intermediate'] }
-      ];
-
-      const colorMap = {
-        'High': 'cell-bad', 'Very High': 'cell-good', 'Medium': 'cell-ok',
-        'Low': 'cell-good', '$$$ High': 'cell-bad', '$$ Medium': 'cell-ok',
-        '$ Low': 'cell-good', '$ Medium': 'cell-good'
-      };
-
-      const opts = [decision, alts[0].title, alts[1].title, alts[2].title];
-
-      el('compare-table').innerHTML = `
-    <thead>
-      <tr>
-        <th>Metric</th>
-        ${opts.map(o => `<th style="color:var(--text);font-size:11px">${o}</th>`).join('')}
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map(r => `
-        <tr>
-          <td>${r.metric}</td>
-          ${r.vals.map(v => `<td class="${colorMap[v] || ''}">${v}</td>`).join('')}
-        </tr>
-      `).join('')}
-    </tbody>
-  `;
-    }
-
     function renderMentor() {
       el('mentor-text').textContent = generateMentor();
 
@@ -2551,31 +2400,6 @@
       });
     }
 
-    // ===== WHAT-IF =====
-    function updateWhatIf() {
-      const t = parseInt(el('wi-time').value);
-      const r = parseInt(el('wi-risk').value);
-      el('wi-time-label').textContent = t;
-      el('wi-risk-label').textContent = r;
-
-      const skillScore = state.skillScore || 2;
-      const success = Math.min(95, 20 + (t * 6) + (skillScore * 8) + r * 2);
-      const months = Math.max(2, Math.round(18 - t * 1.2 - r * 0.5));
-      const income = Math.round(600 + t * 180 + r * 100 + skillScore * 200);
-      const stress = Math.min(10, Math.round(r * 0.7 + (8 - t) * 0.4));
-
-      el('whatif-output').innerHTML = [
-        { l: 'Success Chance', v: success + '%', c: success > 70 ? 'var(--green)' : success > 45 ? 'var(--gold)' : 'var(--red)' },
-        { l: 'Time to Results', v: months + ' mo', c: 'var(--cyan)' },
-        { l: 'Income Potential', v: '$' + income.toLocaleString(), c: 'var(--green)' },
-        { l: 'Stress Level', v: stress + '/10', c: stress > 7 ? 'var(--red)' : stress > 4 ? 'var(--gold)' : 'var(--green)' }
-      ].map(m => `
-    <div class="wi-metric">
-      <div class="wi-value" style="color:${m.c}">${m.v}</div>
-      <div class="wi-label">${m.l}</div>
-    </div>
-  `).join('');
-    }
 
     // ===== SAVE / DOWNLOAD =====
     function saveProgress() {
@@ -2634,17 +2458,13 @@
           renderScenarios();
           renderAlternatives();
           renderRoadmap();
-          renderComparison();
           renderMentor();
 
           renderRisk();
           renderTracker();
           renderReminders();
 
-          // Init what-if defaults
-          el('wi-time').value = state.time;
-          el('wi-time-label').textContent = state.time;
-          updateWhatIf();
+
 
           showPage('page-dashboard');
 
